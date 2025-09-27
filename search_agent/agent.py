@@ -55,7 +55,7 @@ def search_files(query: str, top_k: int = 5) -> list[dict]:
         query: The search string (e.g. 'avatar season 1 episode 16').
         top_k: Max number of results to return.
     """
-    file_tool = FileSearchTool(os.getenv("FILES_JSON_PATH"))
+    file_tool = FileSearchTool(os.getenv("SCAN_OUTPUT"))
     return file_tool.search(query, top_k)
 
 

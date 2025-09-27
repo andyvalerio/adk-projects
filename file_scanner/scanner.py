@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 import os, json, time
 from pathlib import Path
+from dotenv import load_dotenv
 
-ROOT = Path("/mnt/f/tv_series/")
-OUTPUT = Path("/root/dev/adk-projects/storage/files.json")
-CHECKPOINT_FILE = Path("/root/dev/adk-projects/storage/scanner_checkpoint.json")
-BATCH_SIZE = 1000
-SCAN_INTERVAL = 300  # seconds between full rescan
+load_dotenv()
+
+ROOT = Path(os.getenv("SCAN_ROOT"))
+OUTPUT = Path(os.getenv("SCAN_OUTPUT"))
+CHECKPOINT_FILE = Path(os.getenv("SCAN_CHECKPOINT"))
+BATCH_SIZE = int(os.getenv("SCAN_BATCH_SIZE"))
+SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL"))
+
 
 # Load or initialize inventory
 if OUTPUT.exists():
@@ -37,9 +41,12 @@ def save_checkpoint(path):
 def scan_incrementally(start_path):
     batch = {}
     count = 0
+    found_files = set()  # Track all found files
+
     for dirpath, _, filenames in os.walk(start_path):
         for fname in filenames:
             full_path = os.path.join(dirpath, fname)
+            found_files.add(full_path)  # Add to found files set
             try:
                 stat = os.stat(full_path)
                 rec = {"size": stat.st_size, "mtime": stat.st_mtime}
@@ -55,10 +62,19 @@ def scan_incrementally(start_path):
                 continue
         # checkpoint per folder
         save_checkpoint(dirpath)
+
+    # Remove files that no longer exist
+    deleted_files = set(inventory.keys()) - found_files
+    if deleted_files:
+        for path in deleted_files:
+            inventory.pop(path, None)
+        save_inventory()
+        print(f"Removed {len(deleted_files)} deleted files from inventory")
+
     # final batch
     if batch:
         save_inventory(batch)
-    return count
+    return count, len(deleted_files)
 
 def run_forever():
     global ROOT

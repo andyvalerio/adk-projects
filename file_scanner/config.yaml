@@ -1,5 +1,0 @@
-root: /mnt/f/tv_series/
-batch_size: 1000
-scan_interval: 300
-inventory_file: /root/dev/adk-projects/storage/files.json
-checkpoint_file: /root/dev/adk-projects/storage/scanner_checkpoint.json
