@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from dotenv import load_dotenv
 from google.adk.agents import Agent
+from .series_expert import series_expert
 
 load_dotenv()
 
@@ -67,4 +68,5 @@ root_agent = Agent(
         "You are an assistant that helps users find files by title from a JSON index.."
     ),
     tools=[search_files],
+    sub_agents=[series_expert]
 )
