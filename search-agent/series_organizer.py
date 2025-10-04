@@ -1,21 +1,22 @@
 from google.adk.agents import Agent
 import re, os
 
-def move_file(file_path: str, info: dict) -> str:
+def suggest_new_path(file_path: str, info: dict) -> str:
     """
-    Move a file to the correct location based on series info.
+    Suggest a new correct location of the file based on series info.
     Args:
         file_path: The current path to the file.
         info: A dictionary with 'series', 'season', and 'episode' keys.
     Returns:
-        The new path to the moved file.
+        The new path suggested.
     """
     # Extract series info
     series_name = re.sub(r'[^\w.-]', '.', info['series'])
     
     # Construct the destination directory path
-    base_dir = os.path.dirname(file_path)
-    series_dir = f"{base_dir}/{series_name}"
+    base_dir = os.getenv('SCAN_ROOT', os.path.dirname(file_path))
+
+    series_dir = os.path.join(base_dir, series_name)
     
     # Create directories if they don't exist
     os.makedirs(series_dir, exist_ok=True)
@@ -26,9 +27,19 @@ def move_file(file_path: str, info: dict) -> str:
     # Construct new file path
     new_path = os.path.join(series_dir, filename)
     
+    return new_path
+
+def move_file(file_path: str, new_path: str) -> None:
+    """
+    Move the file from the old path to the new path.
+    Args:
+        file_path: The current path to the file.
+        new_path: The new path where the file should be moved.
+    Returns:
+        The new path to which the file was moved.
+    """
     # Move the file using os.rename
     os.rename(file_path, new_path)
-    
     return new_path
     
 # Create the agent
@@ -41,11 +52,11 @@ series_organizer = Agent(
         "/data/mnt/f/tv_series/Silicon.Valley.S06E03.WEB-DLRip.RGzsRutracker.[Wentworth_Miller].avi" \
         "and the information about that episode, for example:" \
         "{'series': 'Silicon Valley', 'season': 6, 'episode': 3}" \
-        "and you are able to understand where that file should be placed. In the above example it " \
-        "should be placed in:" \
+        "and with the help of suggest_new_path tool you are able to understand where that file "
+        "should be placed. In the above example it should be placed in:" \
         "/data/mnt/f/tv_series/Silicon.Valley/" \
         "Then, with the help of a tool, when requested you move the file to the correct location."
     ),
-    tools=[move_file],
+    tools=[suggest_new_path, move_file],
 
 )

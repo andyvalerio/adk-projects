@@ -1,9 +1,15 @@
+Run locally: 
+´´´
+python file-scanner/scanner.py
+´´´
+Make sur eyou have a .env file or define the needed environment variables. 
+
 Build docker image: 
 ´´´
 docker build -t file-scanner .
 ´´´
 
-Run it locally: 
+Run locally in a Docker container: 
 ´´´
 docker run -it --privileged \
   -v /:/data \
