@@ -41,20 +41,38 @@ def save_checkpoint(path):
 def scan_incrementally(start_path):
     batch = {}
     count = 0
-    found_files = set()  # Track all found files
+    found_items = set()  # Track both files and folders
 
-    for dirpath, _, filenames in os.walk(start_path):
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        # Add directory entry
+        try:
+            dir_stat = os.stat(dirpath)
+            dir_rec = {
+                "type": "directory",
+                "size": dir_stat.st_size,
+                "mtime": dir_stat.st_mtime
+            }
+            found_items.add(dirpath)
+            if dirpath not in inventory or inventory[dirpath] != dir_rec:
+                batch[dirpath] = dir_rec
+                count += 1
+        except Exception:
+            continue
+
+        # Process files (existing code with minor modifications)
         for fname in filenames:
             full_path = os.path.join(dirpath, fname)
-            found_files.add(full_path)  # Add to found files set
+            found_items.add(full_path)
             try:
                 stat = os.stat(full_path)
-                rec = {"size": stat.st_size, "mtime": stat.st_mtime}
-                # skip if unchanged
-                if full_path in inventory and inventory[full_path] == rec:
-                    continue
-                batch[full_path] = rec
-                count += 1
+                rec = {
+                    "type": "file",
+                    "size": stat.st_size,
+                    "mtime": stat.st_mtime
+                }
+                if full_path not in inventory or inventory[full_path] != rec:
+                    batch[full_path] = rec
+                    count += 1
                 if len(batch) >= BATCH_SIZE:
                     save_inventory(batch)
                     batch.clear()
@@ -63,18 +81,18 @@ def scan_incrementally(start_path):
         # checkpoint per folder
         save_checkpoint(dirpath)
 
-    # Remove files that no longer exist
-    deleted_files = set(inventory.keys()) - found_files
-    if deleted_files:
-        for path in deleted_files:
+    # Remove items that no longer exist
+    deleted_items = set(inventory.keys()) - found_items
+    if deleted_items:
+        for path in deleted_items:
             inventory.pop(path, None)
         save_inventory()
-        print(f"Removed {len(deleted_files)} deleted files from inventory")
+        print(f"Removed {len(deleted_items)} deleted items from inventory")
 
     # final batch
     if batch:
         save_inventory(batch)
-    return count, len(deleted_files)
+    return count, len(deleted_items)
 
 def run_forever():
     global ROOT

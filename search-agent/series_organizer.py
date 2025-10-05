@@ -1,7 +1,6 @@
 from google.adk.agents import Agent
 from google.adk.tools import FunctionTool
 from google.adk.tools import LongRunningFunctionTool
-from google.adk.tools.tool_context import ToolContext
 import re, os
 
 def suggest_new_path(file_path: str, info: dict) -> str:
@@ -32,25 +31,6 @@ def suggest_new_path(file_path: str, info: dict) -> str:
     
     return new_path
 
-# TODO This is an easy way to handle confirmation, but not very safe. The model 
-# could just ignore it. The proper way is to use FunctionTool with a callback to get 
-# confirmation. Good enough for local use for now.
-def request_move_confirmation(file_path: str, new_path: str) -> dict:
-    """
-    Request confirmation for moving a file.
-    Args:
-        file_path: Source path of the file
-        new_path: Destination path for the file
-    Returns:
-        Dictionary with confirmation status and details
-    """
-    return {
-        'status': 'pending',
-        'action': 'move_file',
-        'source': file_path,
-        'destination': new_path
-    }
-
 def move_file(file_path: str, new_path: str) -> str:
     """Execute the actual file move operation."""
     os.rename(file_path, new_path)
@@ -69,13 +49,10 @@ series_organizer = Agent(
         "and with the help of suggest_new_path tool you are able to understand where that file "
         "should be placed. In the above example it should be placed in:" \
         "/data/mnt/f/tv_series/Silicon.Valley/" \
-        "Then, with the help of a tool, when requested you move the file to the correct location. Moving "
-        "the file is always subjected to human confirmation. "
-        "You'll get a confirmation request with status 'pending' first."
+        "Then, with the help of a tool, when requested you move the file to the correct location."
     ),
     tools=[
         suggest_new_path,
-        LongRunningFunctionTool(func=request_move_confirmation),
         FunctionTool(move_file)
     ],
 )
