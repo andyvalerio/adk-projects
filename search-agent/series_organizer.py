@@ -49,7 +49,8 @@ series_organizer = Agent(
         "and with the help of suggest_new_path tool you are able to understand where that file "
         "should be placed. In the above example it should be placed in:" \
         "/data/mnt/f/tv_series/Silicon.Valley/" \
-        "Then, with the help of a tool, when requested you move the file to the correct location."
+        "Then, with the help of a tool, when requested you move the file to the correct location"
+        "and always inform the user with the new location."
     ),
     tools=[
         suggest_new_path,

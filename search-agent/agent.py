@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from google.adk.agents import Agent
 from .series_expert import series_expert
 from .series_organizer import series_organizer
+from .cleaner_agent import cleaner_agent
 from google.adk.tools import FunctionTool
 from google.adk.tools import LongRunningFunctionTool
 
@@ -74,17 +75,31 @@ def list_directory(path: str) -> list[str]:
     except Exception as e:
         return [f"Error: {str(e)}"]
 
-def request_delete_directory_confirmation(dir_path: str) -> dict:
+def request_delete_directories_confirmation(dir_paths: list[str]) -> dict:
     return {
         'status': 'pending',
-        'action': 'delete_directory',
-        'directory_path': dir_path,
+        'action': 'delete_directories',
+        'directories': dir_paths,
     }
 
-def delete_directory(dir_path: str) -> str:
-    """Execute the actual removal of a directory."""
-    shutil.rmtree(dir_path)
-    return dir_path
+
+def delete_directories(dir_paths: list[str]) -> dict:
+    """Execute the actual removal of one or several directories."""
+    deleted = []
+    failed = []
+
+    for path in dir_paths:
+        try:
+            shutil.rmtree(path)
+            deleted.append(path)
+        except Exception as e:
+            failed.append({'path': path, 'error': str(e)})
+
+    return {
+        'status': 'completed' if not failed else 'partial',
+        'deleted': deleted,
+        'failed': failed,
+    }
 
 # Create the agent
 root_agent = Agent(
@@ -92,10 +107,11 @@ root_agent = Agent(
     model="gemini-2.0-flash",
     instruction=(
         "You are an assistant that helps users find files and directories by name from "
-        "a JSON index. You are able to delete directories as well, after confirming with the user."
+        "a JSON index. You are able to delete directories as well, after confirming with the user." \
+        "Get help from the cleaner_agent when the user asks you to free some space on the disk."
     ),
     tools=[search_files, list_directory, 
-            LongRunningFunctionTool(func=request_delete_directory_confirmation),
-            FunctionTool(delete_directory)],
-    sub_agents=[series_expert, series_organizer]
+            LongRunningFunctionTool(func=request_delete_directories_confirmation),
+            FunctionTool(delete_directories)],
+    sub_agents=[series_expert, series_organizer, cleaner_agent]
 )
